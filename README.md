@@ -8,3 +8,10 @@
 ## Method Summary
 
 We introduce LatSearch, an inference-time scaling method for video diffusion that uses a latent reward model to evaluate partially denoised latents during generation. By providing intermediate reward guidance along the denoising trajectory, LatSearch enables efficient reward-guided resampling and pruning, improving video quality while reducing runtime by up to 79% compared to existing search-based approaches.
+
+## Progress
+
+- [ ] Code
+- [ ] Pre-trained models
+
+*Code and pre-trained models will be released in 1-2 weeks.*
