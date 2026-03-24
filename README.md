@@ -52,7 +52,7 @@ We evaluate LatSearch on the VBench-2.0 benchmark and demonstrate that it consis
 If you find this work useful for your research, please consider citing our paper and giving this repo a ⭐️.
 
 ```bibtex
-@misc{zhao2026latsearchlatentrewardguidedsearch,
+@misc{zhao2026latsearch,
       title={LatSearch: Latent Reward-Guided Search for Faster Inference-Time Scaling in Video Diffusion}, 
       author={Zengqun Zhao and Ziquan Liu and Yu Cao and Shaogang Gong and Zhensong Zhang and Jifei Song and Jiankang Deng and Ioannis Patras},
       year={2026},
