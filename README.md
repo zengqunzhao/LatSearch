@@ -1,68 +1,333 @@
 <div align="center">
 
-# LatSearch: Latent Reward-Guided Search for Faster Inference-Time Scaling in Video Diffusion
+# LatSearch
 
-**Zengqun Zhao · Ziquan Liu · Yu Cao· Shaogang Gong · Zhensong Zhang · Jifei Song · Jiankang Deng · Ioannis Patras**
+### Latent Reward-Guided Search for Faster Inference-Time Scaling in Video Diffusion
+
+Zengqun Zhao · Ziquan Liu · Yu Cao · Shaogang Gong · Zhensong Zhang · Jifei Song · Jiankang Deng · Ioannis Patras
 
 Queen Mary University of London · Imperial College London
 
-[![arXiv](https://img.shields.io/badge/arXiv-Paper-b31b1b.svg)](https://arxiv.org/abs/2603.14526)
-[![Project Page](https://img.shields.io/badge/Project-Page-blue.svg)](https://zengqunzhao.github.io/LatSearch)
+[![ECCV 2026](https://img.shields.io/badge/ECCV-2026-1f6feb)](https://eccv.ecva.net/)
+[![arXiv](https://img.shields.io/badge/arXiv-2603.14526-b31b1b.svg)](https://arxiv.org/abs/2603.14526)
+[![Project page](https://img.shields.io/badge/Project-Page-2ea44f)](https://zengqunzhao.github.io/LatSearch)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+**Accepted at ECCV 2026**
 
 </div>
 
----
+LatSearch is an inference-time scaling method for video diffusion. It evaluates
+partially denoised latents during generation, then uses those intermediate
+rewards to allocate computation to promising trajectories. Compared with
+search methods that repeatedly decode full videos, LatSearch achieves comparable
+or better generation quality while reducing runtime by up to **79%**.
 
-## 💡 TL;DR
+This repository contains the LatSearch implementation, latent-reward training
+code, VBench-2.0 prompts, and the FreeInit, FreqPrior, VideoReward, and EvoSearch
+baselines used in our paper.
 
-**LatSearch** is an inference-time scaling method for video diffusion that uses a **latent reward model** to evaluate partially denoised latents during generation. By providing intermediate reward guidance along the denoising trajectory, LatSearch enables efficient reward-guided resampling and pruning, improving video quality while reducing runtime by up to **79%** compared to existing search-based approaches.
+## Method
 
-## 📖 Abstract
+![LatSearch overview](assets/fig_overview.png)
 
-The recent success of inference-time scaling in large language models has inspired similar explorations in video diffusion. In particular, motivated by the existence of "golden noise" that enhances video quality, prior work has attempted to improve inference by optimising or searching for better initial noise. However, these approaches have notable limitations: they either rely on priors imposed at the beginning of noise sampling or on rewards evaluated only on the denoised and decoded videos. This leads to error accumulation, delayed and sparse reward signals, and prohibitive computational cost, which prevents the use of stronger search algorithms.
+The latent reward model predicts three complementary scores from an intermediate
+latent, its denoising timestep, and the text prompt:
 
-To fill in this gap, we enable efficient inference-time scaling for video diffusion through **latent reward guidance**, which provides intermediate, informative and efficient feedback along the denoising trajectory. We introduce a latent reward model that scores partially denoised latents at arbitrary timesteps with respect to visual quality, motion quality, and text alignment. Building on this model, we propose **LatSearch**, a novel inference-time search mechanism that performs **Reward-Guided Resampling and Pruning (RGRP)**:
-- 🔵 **Resampling** — candidates are sampled according to reward-normalised probabilities to reduce over-reliance on the reward model
-- ✂️ **Pruning** — applied at the final scheduled step, only the candidate with the highest cumulative reward is retained
+- **Visual quality (VQ):** appearance, fidelity, and artifacts.
+- **Motion quality (MQ):** temporal consistency and motion realism.
+- **Text alignment (TA):** correspondence between the generated content and prompt.
 
-We evaluate LatSearch on the VBench-2.0 benchmark and demonstrate that it consistently improves video generation across multiple evaluation dimensions compared to the baseline Wan2.1 model.
+Training targets are grounded by the cosine similarity between an intermediate
+latent and the final clean latent. The reward model is optimized with regression
+and pairwise preference losses.
 
-## 🔍 Method
+During inference, **Reward-Guided Resampling and Pruning (RGRP)** maintains
+multiple correlated trajectories. At scheduled denoising steps it:
 
-![Method Overview](assets/fig_overview.png)
+1. scores every candidate in latent space;
+2. samples candidates using reward-normalized probabilities;
+3. removes duplicate trajectories to avoid redundant computation; and
+4. retains the candidate with the highest cumulative reward at the final search step.
 
-**Figure 1.** An overview of a latent reward model (left) and the proposed latent reward-guided inference-time search method, LatSearch (right). On the left, input latent tokens are patchified, fused with timestep embeddings, and projected by a ViT encoder. Together with instruction tokens, text prompts, and special query tokens ([VQ], [MQ], [TA]), these form the input to a large language model. The model is trained using a combination of regression and preference losses. On the right, LatSearch maintains multiple candidate trajectories during a diffusion process. Candidates are periodically scored by the latent reward model, resampled with uniqueness to encourage diversity, and finally pruned based on cumulative rewards before decoding into the final video.
+## Results
 
-## 📈 Quantitative Results
+![VBench-2.0 comparison](assets/fig_comparison.png)
 
-![Quantitative Comparison on VBench-2.0](assets/fig_comparison.png)
+The principal Wan2.1-1.3B comparison from the paper is summarized below. Runtime
+was measured on an NVIDIA A100 GPU. See the paper for per-dimension results,
+additional backbones, longer videos, 720p generation, and ablations.
 
-**LatSearch achieves state-of-the-art performance on VBench-2.0**, consistently improving video generation across multiple evaluation dimensions compared to the baseline Wan2.1 model, while achieving comparable or better quality than existing methods with up to **79% reduction in runtime**.
+| Method | VBench-2.0 average | Runtime (s) |
+| --- | ---: | ---: |
+| Wan2.1 baseline | 51.90 | 77.21 |
+| FreeInit | 49.82 | 308.87 |
+| FreqPrior | 50.37 | 142.46 |
+| VideoReward best-of-N | 52.80 | 283.63 |
+| EvoSearch | 55.01 | 783.76 |
+| **LatSearch (UniPC)** | **53.84** | **182.43** |
+| **LatSearch (DPM-Solver++)** | **55.25** | **164.41** |
 
-## 🗓️ Release Progress
+## Installation
 
-- [x] Paper
-- [ ] Code
-- [ ] Pre-trained models
+### Requirements
 
-*Code and pre-trained models will be released in 1-2 weeks.*
+- Linux, Python 3.10, and an NVIDIA GPU
+- CUDA 12.4-compatible PyTorch 2.6
+- Git LFS and `ffmpeg`
 
-## 🔖 Citation
+```bash
+git clone https://github.com/zengqunzhao/LatSearch.git
+cd LatSearch
 
-If you find this work useful for your research, please consider citing our paper and giving this repo a ⭐️.
+conda create -n latsearch python=3.10 -y
+conda activate latsearch
+pip install -r requirements.txt
+pip install flash-attn==2.7.4.post1 --no-build-isolation
+```
+
+`environment.yml` is also provided for Conda-based setup.
+
+### Checkpoints
+
+Download the public Wan2.1-1.3B and VideoReward checkpoints:
+
+```bash
+mkdir -p checkpoints
+
+hf download Wan-AI/Wan2.1-T2V-1.3B \
+  --local-dir checkpoints/Wan2.1-T2V-1.3B
+
+hf download KwaiVGI/VideoReward \
+  --local-dir checkpoints/VideoReward
+```
+
+> **LatSearch checkpoint:** The pretrained latent reward checkpoint is being
+> prepared for public release. The download command will be added here when it
+> is available. Until then, it can be reproduced using the training pipeline
+> below.
+
+After downloading or training it, place the LatSearch latent reward checkpoint
+at `checkpoints/latent_reward.pt`. The expected layout is:
+
+```text
+checkpoints/
+├── Wan2.1-T2V-1.3B/
+├── VideoReward/
+│   ├── model_config.json
+│   └── checkpoint-*/
+└── latent_reward.pt
+```
+
+The latent reward checkpoint is not the VideoReward checkpoint. VideoReward
+provides the frozen multimodal backbone and reward head, while
+`latent_reward.pt` stores only the trainable LatSearch visual encoder and
+timestep embedding. Both are required for inference.
+
+## Quick Start
+
+Generate one 33-frame, 480p video with the paper's default search schedule:
+
+```bash
+python generate.py \
+  --prompt "A red panda plays a tiny guitar beside a mountain stream." \
+  --model-path checkpoints/Wan2.1-T2V-1.3B \
+  --reward-backbone-path checkpoints/VideoReward \
+  --latent-reward-checkpoint checkpoints/latent_reward.pt \
+  --search-schedule 10 15 20 \
+  --num-candidates 6 \
+  --noise-perturbation 0.1 \
+  --temperature 1.0 \
+  --output-dir outputs/latsearch
+```
+
+The default solver is UniPC. Add `--solver dpm++` to run the DPM-Solver++
+configuration. Use `python generate.py --help` for all generation and search
+options.
+
+### Prompt files
+
+`generate.py` accepts either one `--prompt` or a JSON `--prompt-file`.
+VBench-style records are supported directly:
+
+```json
+[
+  {
+    "prompt_en": "Garden, zoom in.",
+    "dimension": ["Camera_Motion"]
+  }
+]
+```
+
+For example, generate the Camera Motion subset of VBench-2.0:
+
+```bash
+python generate.py \
+  --prompt-file prompts/VBench2_full_info.json \
+  --dimensions Camera_Motion \
+  --model-path checkpoints/Wan2.1-T2V-1.3B \
+  --reward-backbone-path checkpoints/VideoReward \
+  --latent-reward-checkpoint checkpoints/latent_reward.pt \
+  --samples-per-prompt 3
+```
+
+`scripts/run_latsearch.sh` and `scripts/run_vbench2.sh` provide complete shell
+examples. Paths can be overridden with `MODEL_PATH`, `VIDEO_REWARD_PATH`, and
+`LATENT_REWARD_PATH`.
+
+## Included Baselines
+
+The baseline integrations use the same Wan2.1 backbone and generation settings
+for controlled comparison. They are provided for research reproducibility and
+are not contributions of this work.
+
+| CLI method | Reference | Paper configuration |
+| --- | --- | --- |
+| `wan` | [Wan2.1](https://github.com/Wan-Video/Wan2.1) | 50 steps, CFG 5.0 |
+| `freeinit` | [FreeInit](https://github.com/TianxingWu/FreeInit) | Four extra iterations, Butterworth filter |
+| `freqprior` | [FreqPrior](https://github.com/fudan-zvg/FreqPrior) | Two extra iterations, ratio 0.8 |
+| `video-reward` | [VideoReward](https://github.com/KwaiVGI/VideoAlign) | Best-of-4 selection |
+| `evosearch` | [EvoSearch](https://github.com/tinnerhrhe/EvoSearch-codes) | Population 6/3/3, schedule 5/20 |
+
+Run any baseline through the shared interface:
+
+```bash
+python generate_baseline.py \
+  --method freeinit \
+  --prompt "A red panda plays a tiny guitar beside a mountain stream." \
+  --model-path checkpoints/Wan2.1-T2V-1.3B
+```
+
+VideoReward and EvoSearch additionally require
+`--video-reward-path checkpoints/VideoReward`. Run
+`python generate_baseline.py --help` for method-specific controls.
+
+## Training the Latent Reward Model
+
+### End-to-end pipeline
+
+```mermaid
+flowchart LR
+    A["1. VBench prompts"] --> B["2. Wan video generation"]
+    B --> C["Intermediate latents<br/>steps 10, 15, 20, 25, 30"]
+    B --> D["Final videos"]
+    D --> E["VideoReward<br/>VQ, MQ, TA targets"]
+    C --> F["Latent training tuples"]
+    E --> F
+    F --> G["3. Train latent reward model"]
+    G --> H["Compact latent_reward.pt"]
+    H --> I["4. LatSearch RGRP inference"]
+    I --> J["Generated videos"]
+    B -. comparison .-> K["5. Baselines"]
+```
+
+The generation and baseline entry points share the same Wan checkpoint,
+resolution, frame count, sampling steps, guidance scale, and prompt format.
+This keeps method comparisons controlled while LatSearch remains the primary
+contribution of this repository.
+
+### 1. Collect intermediate latents
+
+`prepare_latent_data.py` generates videos, stores intermediate denoising states,
+computes cosine similarity to the final latent, and obtains VQ/MQ/TA targets
+from VideoReward. The released recipe uses the 945 prompt entries in
+`prompts/LatSearch_train_prompts.json` for training-data generation. VBench-2.0 prompts
+remain separate and are used for evaluation.
+
+```bash
+python prepare_latent_data.py \
+  --prompt-file prompts/LatSearch_train_prompts.json \
+  --model-path checkpoints/Wan2.1-T2V-1.3B \
+  --video-reward-path checkpoints/VideoReward \
+  --output-dir data \
+  --seeds 200 300 400 500 600 \
+  --selected-steps 10 15 20 25 30 \
+  --num-frames 33
+```
+
+Collection is resumable. It writes tensors under `data/seed_*` and one metadata
+file per seed under `data/metadata`.
+
+### 2. Train
+
+The paper uses an 80/20 **prompt-level** split, batch size 4, learning rate
+`1e-4`, 15 epochs, and equal regression/preference loss weights. All samples
+generated from the same prompt, across every random seed, are assigned to the
+same split to prevent prompt leakage:
+
+```bash
+python -m tools.train_latent_reward \
+  --job_id wan13b \
+  --json_root_path data/metadata \
+  --load_from_pretrained checkpoints/VideoReward \
+  --output_dir checkpoints \
+  --checkpoint_name latent_reward.pt \
+  --split_seed 1203 \
+  --batch_size 4 \
+  --lr 1e-4 \
+  --epochs 15 \
+  --milestones 10
+```
+
+Training overwrites one rolling checkpoint after every epoch instead of storing
+the full Qwen/VideoReward backbone repeatedly. The checkpoint contains only
+trainable tensors and is approximately 1.25 GiB for the current architecture,
+compared with approximately 4.7 GiB for the legacy full state dictionary. Add
+`--report_to_wandb` to enable experiment tracking. See
+`examples/latent_metadata.json` for the generated metadata schema.
+
+Existing full checkpoints can be converted without retraining:
+
+```bash
+python -m tools.compact_latent_reward_checkpoint \
+  checkpoints/legacy_latent_reward.pt \
+  checkpoints/latent_reward.pt
+```
+
+## Repository Layout
+
+```text
+LatSearch/
+├── generate.py                     # canonical LatSearch inference CLI
+├── generate_baseline.py            # shared baseline inference CLI
+├── prepare_latent_data.py          # latent-reward dataset construction
+├── latsearch/
+│   └── reward/                      # latent reward model and data pipeline
+├── third_party/
+│   ├── WanVideoModel/               # Wan2.1 and search implementations
+│   └── VideoReward/                 # video-level reward integration
+├── tools/                           # training, scoring, and analysis utilities
+├── prompts/                         # VBench and VBench-2.0 benchmark prompts
+├── scripts/                         # reproducible shell recipes
+└── examples/                        # public metadata-format example
+```
+
+LatSearch-specific reward modeling code lives under `latsearch/reward/`. The
+canonical generation class is `WanT2VWithLatSearch`, and its RGRP sampler is
+implemented in
+`third_party/WanVideoModel/wan/text2video.py::WanT2VWithLatSearch.generate_with_latsearch`.
+The same Wan integration contains the comparison samplers exposed through
+`generate_baseline.py`.
+
+## Citation
 
 ```bibtex
-@misc{zhao2026latsearch,
-      title={LatSearch: Latent Reward-Guided Search for Faster Inference-Time Scaling in Video Diffusion}, 
-      author={Zengqun Zhao and Ziquan Liu and Yu Cao and Shaogang Gong and Zhensong Zhang and Jifei Song and Jiankang Deng and Ioannis Patras},
-      year={2026},
-      eprint={2603.14526},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2603.14526}, 
+@inproceedings{zhao2026latsearch,
+  title   = {LatSearch: Latent Reward-Guided Search for Faster Inference-Time Scaling in Video Diffusion},
+  author  = {Zhao, Zengqun and Liu, Ziquan and Cao, Yu and Gong, Shaogang and Zhang, Zhensong and Song, Jifei and Deng, Jiankang and Patras, Ioannis},
+  booktitle = {European Conference on Computer Vision (ECCV)},
+  year    = {2026}
 }
 ```
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
-- [Wan2.1](https://github.com/Wan-Video/Wan2.1): the base video diffusion model we built upon. Thanks for their wonderful work.
+This work builds on [Wan2.1](https://github.com/Wan-Video/Wan2.1) and
+[VideoReward](https://github.com/KwaiVGI/VideoAlign). We also thank the authors
+of FreeInit, FreqPrior, and EvoSearch. See [THIRD_PARTY.md](THIRD_PARTY.md) for
+component-level attribution and licensing notes.
+
+## License
+
+The original LatSearch code is released under the [MIT License](LICENSE).
+Third-party components remain subject to their respective licenses.

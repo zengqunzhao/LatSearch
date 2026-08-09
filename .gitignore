@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environments and editors
+.env
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+
+# Models, generated data, and experiment output
+checkpoints/
+outputs/
+data/seed_*/
+data/metadata/
+logs/
+log/
+wandb/
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.mp4
+*.tmp

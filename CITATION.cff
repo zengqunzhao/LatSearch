@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the LatSearch paper."
+title: "LatSearch: Latent Reward-Guided Search for Faster Inference-Time Scaling in Video Diffusion"
+type: software
+authors:
+  - family-names: Zhao
+    given-names: Zengqun
+  - family-names: Liu
+    given-names: Ziquan
+  - family-names: Cao
+    given-names: Yu
+  - family-names: Gong
+    given-names: Shaogang
+  - family-names: Zhang
+    given-names: Zhensong
+  - family-names: Song
+    given-names: Jifei
+  - family-names: Deng
+    given-names: Jiankang
+  - family-names: Patras
+    given-names: Ioannis
+version: 1.0.0
+date-released: 2026-08-09
+repository-code: "https://github.com/zengqunzhao/LatSearch"
+url: "https://zengqunzhao.github.io/LatSearch"
+license: MIT
+preferred-citation:
+  type: article
+  title: "LatSearch: Latent Reward-Guided Search for Faster Inference-Time Scaling in Video Diffusion"
+  authors:
+    - family-names: Zhao
+      given-names: Zengqun
+    - family-names: Liu
+      given-names: Ziquan
+    - family-names: Cao
+      given-names: Yu
+    - family-names: Gong
+      given-names: Shaogang
+    - family-names: Zhang
+      given-names: Zhensong
+    - family-names: Song
+      given-names: Jifei
+    - family-names: Deng
+      given-names: Jiankang
+    - family-names: Patras
+      given-names: Ioannis
+  year: 2026
+  journal: "arXiv preprint arXiv:2603.14526"

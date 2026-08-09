@@ -1,0 +1,11 @@
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = ["third_party"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# These lines are exact model prompt templates; wrapping them would change the prompts.
+"latsearch/reward/prompts.py" = ["E501"]

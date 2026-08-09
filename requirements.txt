@@ -1,0 +1,35 @@
+# Tested Wan2.1 and reward-model stack (Python 3.10, CUDA 12.4)
+torch==2.6.0
+torchvision==0.21.0
+numpy==1.26.4
+diffusers==0.36.0
+transformers==4.51.3
+tokenizers==0.21.4
+accelerate==1.11.0
+peft==0.17.0
+trl==0.19.1
+safetensors==0.5.3
+
+# Video and multimodal processing
+opencv-python-headless==4.11.0.86
+decord==0.6.0
+av==12.3.0
+imageio==2.37.0
+imageio-ffmpeg==0.6.0
+moviepy==1.0.3
+pillow==11.3.0
+
+# Model utilities
+datasets==4.0.0
+einops==0.8.1
+easydict==1.13
+ftfy==6.3.1
+regex==2024.11.6
+sentencepiece==0.2.0
+tqdm==4.67.1
+packaging==25.0
+pandas==2.3.1
+wandb==0.21.0
+markupsafe==3.0.3
+pytz==2026.2
+tzdata==2026.2

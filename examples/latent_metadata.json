@@ -1,0 +1,32 @@
+[
+  {
+    "prompt": "A red panda plays a tiny guitar beside a mountain stream.",
+    "video_path": "../seed_200/0000/video.mp4",
+    "output_reward": [
+      {
+        "VQ": 3.75,
+        "MQ": 1.27,
+        "TA": 2.81,
+        "Overall": 7.83
+      }
+    ],
+    "latent_tensor_path": [
+      {
+        "t10": "../seed_200/0000/latent_step_t10_tensor.pt",
+        "t15": "../seed_200/0000/latent_step_t15_tensor.pt",
+        "t20": "../seed_200/0000/latent_step_t20_tensor.pt",
+        "t25": "../seed_200/0000/latent_step_t25_tensor.pt",
+        "t30": "../seed_200/0000/latent_step_t30_tensor.pt"
+      }
+    ],
+    "latent_z0_similarity": [
+      {
+        "t10": 0.58,
+        "t15": 0.64,
+        "t20": 0.71,
+        "t25": 0.79,
+        "t30": 0.88
+      }
+    ]
+  }
+]
