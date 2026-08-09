@@ -208,7 +208,7 @@ VideoReward and EvoSearch additionally require
 
 ```mermaid
 flowchart LR
-    A["1. VBench prompts"] --> B["2. Wan video generation"]
+    A["1. Text prompts"] --> B["2. Wan video generation"]
     B --> C["Intermediate latents<br/>steps 10, 15, 20, 25, 30"]
     B --> D["Final videos"]
     D --> E["VideoReward<br/>VQ, MQ, TA targets"]
