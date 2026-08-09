@@ -217,14 +217,16 @@ flowchart LR
     F --> G["3. Train latent reward model"]
     G --> H["Compact latent_reward.pt"]
     H --> I["4. LatSearch RGRP inference"]
-    I --> J["Generated videos"]
-    B -. comparison .-> K["5. Baselines"]
+    V["VBench-2.0 prompts"] --> I
+    I --> J["LatSearch videos"]
+    V --> K["5. Baselines"]
+    K --> L["Baseline videos"]
 ```
 
-The generation and baseline entry points share the same Wan checkpoint,
-resolution, frame count, sampling steps, guidance scale, and prompt format.
-This keeps method comparisons controlled while LatSearch remains the primary
-contribution of this repository.
+The LatSearch and baseline entry points use the same VBench-2.0 evaluation
+prompts, Wan checkpoint, resolution, frame count, sampling steps, and guidance
+scale. This keeps method comparisons controlled while LatSearch remains the
+primary contribution of this repository.
 
 ### 1. Collect intermediate latents
 
