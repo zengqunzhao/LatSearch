@@ -4,7 +4,8 @@
 
 ### Latent Reward-Guided Search for Faster Inference-Time Scaling in Video Diffusion
 
-Zengqun Zhao · Ziquan Liu · Yu Cao · Shaogang Gong · Zhensong Zhang · Jifei Song · Jiankang Deng · Ioannis Patras
+Zengqun Zhao · Ziquan Liu · Yu Cao · Shaogang Gong<br>
+Zhensong Zhang · Jifei Song · Jiankang Deng · Ioannis Patras
 
 Queen Mary University of London · Imperial College London
 
