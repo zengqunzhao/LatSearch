@@ -16,7 +16,11 @@ Queen Mary University of London · Imperial College London
 
 **Accepted at ECCV 2026**
 
+<img src="assets/fig_videos_comparison.png" alt="LatSearch qualitative comparison" width="100%">
+
 </div>
+
+## Overview
 
 LatSearch is an inference-time scaling method for video diffusion. It evaluates
 partially denoised latents during generation, then uses those intermediate
