@@ -126,8 +126,8 @@ checkpoints/
 
 The latent reward checkpoint is not the VideoReward checkpoint. VideoReward
 provides the frozen multimodal backbone and reward head, while
-`latent_reward.pt` stores only the trainable LatSearch visual encoder and
-timestep embedding. Both are required for inference.
+`latent_reward.pt` stores the trainable LatSearch visual encoder. Both are
+required for inference.
 
 ## Quick Start
 

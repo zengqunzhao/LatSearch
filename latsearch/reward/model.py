@@ -180,8 +180,9 @@ class LatentReward(nn.Module):
             visual_module = base_model.model.visual
         patch_embed = visual_module.patch_embed
         old_proj = patch_embed.proj
+        self.latent_channels = 16
         patch_embed.proj = nn.Conv3d(
-            in_channels=16,
+            in_channels=self.latent_channels,
             out_channels=old_proj.out_channels,
             kernel_size=old_proj.kernel_size,
             stride=old_proj.stride,
@@ -208,12 +209,8 @@ class LatentReward(nn.Module):
 
         self.model = model
         self.processor = processor
-        self.video_processor = video_proc
         self.data_config = data_config
         self.inference_config = inference_config
-        # The paper conditions every latent on a learned denoising-step
-        # embedding. Keep it on the module so it is optimized and checkpointed.
-        self.step_embedding = nn.Embedding(1000, 16, device=device, dtype=dtype)
         self.to(self.device)
 
     def forward(self, batch):
@@ -298,10 +295,12 @@ class LatentReward(nn.Module):
         video_inputs = torch.stack(video_inputs, dim=0)  # [B, T, C, H, W]
 
         B, T, C, H, W = video_inputs.shape
-        if C != self.step_embedding.embedding_dim:
-            raise ValueError(
-                f"Expected {self.step_embedding.embedding_dim} latent channels, got {C}."
-            )
+        if C != self.latent_channels:
+            raise ValueError(f"Expected {self.latent_channels} latent channels, got {C}.")
+        step_embed = nn.Embedding(1000, C).to(self.device)
+        step_embeds = step_embed(denoising_steps.long())
+        step_embeds = step_embeds.view(B, 1, C, 1, 1).expand(-1, T, -1, H, W)
+        video_inputs = video_inputs + step_embeds.to(dtype=video_inputs.dtype)
         # Hugging Face image processors convert tensors to NumPy internally,
         # which requires CPU float32 rather than CUDA bfloat16.
         video_inputs = [video_inputs[i].float().cpu() for i in range(B)]
@@ -324,19 +323,4 @@ class LatentReward(nn.Module):
         )
         batch = self._prepare_inputs(batch)
 
-        # Add the channel-wise timestep embedding after preprocessing. Adding
-        # it earlier would lose its gradient when the processor converts video
-        # tensors to NumPy arrays.
-        patch_volume = self.video_processor.temporal_patch_size * self.video_processor.patch_size**2
-        step_patches = self.step_embedding(denoising_steps.long())
-        step_patches = step_patches.to(batch["pixel_values_videos"].dtype)
-        step_patches = step_patches.repeat_interleave(patch_volume, dim=1)
-        patch_counts = batch["video_grid_thw"].prod(dim=1)
-        step_patches = torch.repeat_interleave(step_patches, patch_counts, dim=0)
-        if step_patches.shape != batch["pixel_values_videos"].shape:
-            raise ValueError(
-                "Timestep embedding shape does not match the processed latent patches: "
-                f"{step_patches.shape} != {batch['pixel_values_videos'].shape}."
-            )
-        batch["pixel_values_videos"] = batch["pixel_values_videos"] + step_patches
         return batch
