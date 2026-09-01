@@ -31,7 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-path", default="checkpoints/Wan2.1-T2V-1.3B")
     parser.add_argument("--video-reward-path", default="checkpoints/VideoReward")
     parser.add_argument("--output-dir", default="data")
-    parser.add_argument("--seeds", nargs="+", type=int, default=[200, 300, 400, 500, 600])
+    parser.add_argument("--seeds", nargs="+", type=int, default=[100, 200, 300, 400, 500])
     parser.add_argument("--selected-steps", nargs="+", type=int, default=[10, 15, 20, 25, 30])
     parser.add_argument("--max-prompts", type=int)
     parser.add_argument("--device", default="cuda:0")

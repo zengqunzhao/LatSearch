@@ -3,8 +3,8 @@ set -euo pipefail
 
 python -m tools.train_latent_reward \
     --job_id "${JOB_ID:-latsearch}" \
-    --seed 3203 \
-    --split_seed 1203 \
+    --seed "${SEED:-3203}" \
+    --split_seed "${SPLIT_SEED:-1203}" \
     --batch_size 4 \
     --lr 1e-4 \
     --epochs 15 \

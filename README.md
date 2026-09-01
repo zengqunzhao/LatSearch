@@ -247,13 +247,22 @@ python prepare_latent_data.py \
   --model-path checkpoints/Wan2.1-T2V-1.3B \
   --video-reward-path checkpoints/VideoReward \
   --output-dir data \
-  --seeds 200 300 400 500 600 \
+  --seeds 100 200 300 400 500 \
   --selected-steps 10 15 20 25 30 \
   --num-frames 33
 ```
 
 Collection is resumable. It writes tensors under `data/seed_*` and one metadata
 file per seed under `data/metadata`.
+
+Validate all generated files before training:
+
+```bash
+python -m tools.validate_latent_dataset data/metadata \
+  --expected-seeds 100 200 300 400 500 \
+  --expected-records-per-seed 945 \
+  --check-tensors
+```
 
 ### 2. Train
 
@@ -276,12 +285,21 @@ python -m tools.train_latent_reward \
   --milestones 10
 ```
 
-Training overwrites one rolling checkpoint after every epoch instead of storing
-the full Qwen/VideoReward backbone repeatedly. The checkpoint contains only
-trainable tensors and is approximately 1.25 GiB for the current architecture,
-compared with approximately 4.7 GiB for the legacy full state dictionary. Add
+Training keeps the checkpoint with the highest mean validation accuracy and
+writes per-epoch metrics to `latent_reward.metrics.jsonl` plus the selected
+epoch to `latent_reward.summary.json`. The checkpoint contains only trainable
+tensors and is approximately 1.25 GiB for the current architecture, compared
+with approximately 4.7 GiB for the legacy full state dictionary. Add
 `--report_to_wandb` to enable experiment tracking. See
 `examples/latent_metadata.json` for the generated metadata schema.
+
+When training several random seeds, select and package the best validation run:
+
+```bash
+python -m tools.select_latent_reward_checkpoint \
+  outputs/latent_reward_training \
+  checkpoints/latent_reward_release
+```
 
 Existing full checkpoints can be converted without retraining:
 

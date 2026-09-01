@@ -1,8 +1,10 @@
 import argparse
 import itertools
+import json
 import os
 import random
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -89,7 +91,12 @@ def main():
         optimizer, milestones=args.milestones, gamma=0.1
     )
 
-    model_save_path = os.path.join(args.output_dir, args.checkpoint_name)
+    model_save_path = Path(args.output_dir) / args.checkpoint_name
+    metrics_path = model_save_path.with_suffix(".metrics.jsonl")
+    summary_path = model_save_path.with_suffix(".summary.json")
+    metrics_path.write_text("", encoding="utf-8")
+    best_validation_accuracy = float("-inf")
+    best_epoch = None
     for epoch in range(0, args.epochs):
         print("********************" + str(epoch) + "********************")
         start_time = time.time()
@@ -116,6 +123,40 @@ def main():
         acc_VQ_25, acc_MQ_25, acc_TA_25 = validation_pairs(args, model, val_l_25, device)
         print("*****" + "validation on step 30" + "*****")
         acc_VQ_30, acc_MQ_30, acc_TA_30 = validation_pairs(args, model, val_l_30, device)
+
+        validation_scores = {
+            "t10": {"VQ": acc_VQ_10, "MQ": acc_MQ_10, "TA": acc_TA_10},
+            "t15": {"VQ": acc_VQ_15, "MQ": acc_MQ_15, "TA": acc_TA_15},
+            "t20": {"VQ": acc_VQ_20, "MQ": acc_MQ_20, "TA": acc_TA_20},
+            "t25": {"VQ": acc_VQ_25, "MQ": acc_MQ_25, "TA": acc_TA_25},
+            "t30": {"VQ": acc_VQ_30, "MQ": acc_MQ_30, "TA": acc_TA_30},
+        }
+        mean_validation_accuracy = float(
+            np.mean(
+                [
+                    score
+                    for step_scores in validation_scores.values()
+                    for score in step_scores.values()
+                ]
+            )
+        )
+        metrics = {
+            "epoch": epoch,
+            "train": {
+                "loss": train_loss,
+                "loss_VQ": train_loss_VQ,
+                "loss_MQ": train_loss_MQ,
+                "loss_TA": train_loss_TA,
+                "loss_CLS_VQ": train_loss_CLS_VQ,
+                "loss_CLS_MQ": train_loss_CLS_MQ,
+                "loss_CLS_TA": train_loss_CLS_TA,
+            },
+            "validation": validation_scores,
+            "mean_validation_accuracy": mean_validation_accuracy,
+        }
+        with metrics_path.open("a", encoding="utf-8") as handle:
+            json.dump(metrics, handle)
+            handle.write("\n")
 
         if args.report_to_wandb:
             wandb.log(
@@ -151,11 +192,27 @@ def main():
                 }
             )
 
-        save_trainable_checkpoint(model, model_save_path)
+        if mean_validation_accuracy > best_validation_accuracy:
+            best_validation_accuracy = mean_validation_accuracy
+            best_epoch = epoch
+            save_trainable_checkpoint(model, model_save_path)
+            summary = {
+                "best_epoch": best_epoch,
+                "best_mean_validation_accuracy": best_validation_accuracy,
+                "checkpoint": str(model_save_path),
+                "metrics": str(metrics_path),
+            }
+            summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+            print(
+                f"New best checkpoint at epoch {best_epoch}: "
+                f"mean validation accuracy={best_validation_accuracy:.4f}"
+            )
         scheduler.step()
 
         epoch_time = time.time() - start_time
         print(f"An epoch time: {epoch_time:.2f}s")
+
+    print(f"Best epoch: {best_epoch}; mean validation accuracy={best_validation_accuracy:.4f}")
 
     if args.report_to_wandb:
         wandb.finish()
@@ -294,20 +351,26 @@ def train_with_cls_loss(args, model, dataloader, optimizer, criterion, device, e
             pred_VQ = output[:, 0]
             pred_MQ = output[:, 1]
             pred_TA = output[:, 2]
-            # Binary classification loss for pairwise ranking
-            score_diff_VQ = pred_VQ[idx_a] - pred_VQ[idx_b]
-            score_diff_MQ = pred_MQ[idx_a] - pred_MQ[idx_b]
-            score_diff_TA = pred_TA[idx_a] - pred_TA[idx_b]
+            if all_pairs:
+                # Binary classification loss for pairwise ranking
+                score_diff_VQ = pred_VQ[idx_a] - pred_VQ[idx_b]
+                score_diff_MQ = pred_MQ[idx_a] - pred_MQ[idx_b]
+                score_diff_TA = pred_TA[idx_a] - pred_TA[idx_b]
 
-            # Binary labels: 1 if A > B, else 0
-            label_VQ = (reward_VQ[idx_a] > reward_VQ[idx_b]).float()
-            label_MQ = (reward_MQ[idx_a] > reward_MQ[idx_b]).float()
-            label_TA = (reward_TA[idx_a] > reward_TA[idx_b]).float()
+                # Binary labels: 1 if A > B, else 0
+                label_VQ = (reward_VQ[idx_a] > reward_VQ[idx_b]).float()
+                label_MQ = (reward_MQ[idx_a] > reward_MQ[idx_b]).float()
+                label_TA = (reward_TA[idx_a] > reward_TA[idx_b]).float()
 
-            # BCEWithLogitsLoss expects raw logits (score_diff), not passed through sigmoid
-            loss_CLS_VQ = criterion_cls(score_diff_VQ, label_VQ)
-            loss_CLS_MQ = criterion_cls(score_diff_MQ, label_MQ)
-            loss_CLS_TA = criterion_cls(score_diff_TA, label_TA)
+                # BCEWithLogitsLoss expects raw logits, not sigmoid probabilities.
+                loss_CLS_VQ = criterion_cls(score_diff_VQ, label_VQ)
+                loss_CLS_MQ = criterion_cls(score_diff_MQ, label_MQ)
+                loss_CLS_TA = criterion_cls(score_diff_TA, label_TA)
+            else:
+                zero = output.sum() * 0.0
+                loss_CLS_VQ = zero
+                loss_CLS_MQ = zero
+                loss_CLS_TA = zero
 
             ##################
             # Regression Loss
