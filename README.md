@@ -293,6 +293,20 @@ with approximately 4.7 GiB for the legacy full state dictionary. Add
 `--report_to_wandb` to enable experiment tracking. See
 `examples/latent_metadata.json` for the generated metadata schema.
 
+Runs that were started without W&B can be uploaded from their saved metrics.
+The command is idempotent, so it can be rerun as new epochs finish:
+
+```bash
+python -m tools.upload_latent_reward_metrics_to_wandb \
+  outputs/latent_reward_training \
+  --project LatSearch \
+  --group wan13b-s50-f33
+```
+
+Each training seed becomes a separate run in the same W&B group. The dashboard
+includes the exact selection metric, `val/mean_validation_accuracy`, along with
+the training losses and all per-step VQ/MQ/TA validation accuracies.
+
 When training several random seeds, select and package the best validation run:
 
 ```bash

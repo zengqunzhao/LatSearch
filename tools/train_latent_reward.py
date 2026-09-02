@@ -68,6 +68,9 @@ def main():
             name=f"latent-reward-{args.job_id}-seed{args.seed}-lr{args.lr}-VQ{args.weight_VQ}-MQ{args.weight_MQ}-TA{args.weight_TA}-CVQ{args.weight_CLS_VQ}-CMQ{args.weight_CLS_MQ}-CTA{args.weight_CLS_TA}",
             config=vars(args),
         )
+        wandb.define_metric("epoch")
+        wandb.define_metric("train/*", step_metric="epoch")
+        wandb.define_metric("val/*", step_metric="epoch")
 
     train_l, val_l_10, val_l_15, val_l_20, val_l_25, val_l_30 = load_dataset()
 
@@ -168,11 +171,6 @@ def main():
                     "train/loss_CLS_VQ": train_loss_CLS_VQ,
                     "train/loss_CLS_MQ": train_loss_CLS_MQ,
                     "train/loss_CLS_TA": train_loss_CLS_TA,
-                    "epoch": epoch,
-                }
-            )
-            wandb.log(
-                {
                     "val/pair_acc_VQ_step10": acc_VQ_10,
                     "val/pair_acc_MQ_step10": acc_MQ_10,
                     "val/pair_acc_TA_step10": acc_TA_10,
@@ -188,8 +186,10 @@ def main():
                     "val/pair_acc_VQ_step30": acc_VQ_30,
                     "val/pair_acc_MQ_step30": acc_MQ_30,
                     "val/pair_acc_TA_step30": acc_TA_30,
+                    "val/mean_validation_accuracy": mean_validation_accuracy,
                     "epoch": epoch,
-                }
+                },
+                step=epoch,
             )
 
         if mean_validation_accuracy > best_validation_accuracy:
