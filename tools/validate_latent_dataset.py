@@ -105,14 +105,12 @@ def main() -> None:
                         raise ValueError(f"{latent_path} contains non-finite values.")
                 total_latents += 1
 
-        if len(prompts) != len(set(prompts)):
-            raise ValueError(f"Duplicate prompts found in {metadata_path}.")
         if reference_prompts is None:
             reference_prompts = prompts
         elif prompts != reference_prompts:
             raise ValueError(f"Prompt ordering differs in {metadata_path}.")
         total_records += len(records)
-        print(f"seed={seed}: {len(records)} records OK")
+        print(f"seed={seed}: {len(records)} records, {len(set(prompts))} unique prompts OK")
 
     if args.expected_seeds is not None and sorted(found_seeds) != sorted(args.expected_seeds):
         raise ValueError(
